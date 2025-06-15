@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NovaNote</title>
+  <style>
+    :root {
+      --bg: #1e1e2f;
+      --bg-sidebar: #2c2f4a;
+      --text: #f5f6fa;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      background-color: #6c5ce7;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.5em;
+      color: white;
+      font-weight: bold;
+    }
+
+    .container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 300px;
+      background-color: var(--bg-sidebar);
+      padding: 10px;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+
+    .section {
+      margin-bottom: 15px;
+    }
+
+    .section-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .page-title {
+      background: #dfe6e9;
+      color: #2d3436;
+      padding: 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .editor {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 5px;
+      background: var(--bg-sidebar);
+      border-radius: 8px;
+      margin-bottom: 10px;
+      white-space: nowrap;
+    }
+
+    .toolbar button,
+    .toolbar select,
+    .toolbar input[type="color"] {
+      flex-shrink: 0;
+      padding: 5px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: #636e72;
+      color: #fff;
+      white-space: nowrap;
+    }
+
+    .toolbar button:hover,
+    .toolbar select:hover {
+      background: #b2bec3;
+      color: black;
+    }
+
+    #note {
+      flex: 1;
+      padding: 15px;
+      background: #2d3436;
+      color: white;
+      border-radius: 8px;
+      overflow-y: auto;
+    }
+
+    #note:focus {
+      outline: none;
+    }
+
+    .add-btn {
+      background: #00cec9;
+      color: #fff;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+
+    .delete-btn {
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 2px 6px;
+      margin-left: 5px;
+      cursor: pointer;
+    }
+
+    .search-input {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 6px;
+      border-radius: 4px;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <header>📝 NovaNote</header>
+  <div class="container">
+    <div class="sidebar">
+      <input class="search-input" type="text" placeholder="Search..." />
+      <div class="section" id="section1">
+        <div class="section-title">Section 1 <button class="add-btn" onclick="addPage()">+</button></div>
+        <div class="pages"></div>
+      </div>
+    </div>
+    <div class="editor">
+      <div class="toolbar">
+        <button onclick="document.execCommand('bold')">Bold</button>
+        <button onclick="document.execCommand('italic')">Italic</button>
+        <button onclick="document.execCommand('backColor', false, 'yellow')">Highlight</button>
+        <select onchange="document.execCommand('fontName', false, this.value)">
+          <option value="Arial">Arial</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Tahoma">Tahoma</option>
+        </select>
+        <select onchange="document.execCommand('fontSize', false, this.value)">
+          <option value="1">Small</option>
+          <option value="3" selected>Normal</option>
+          <option value="5">Large</option>
+        </select>
+        <button onclick="downloadText()">Download TXT</button>
+        <button onclick="downloadPDF()">Download PDF</button>
+        <input type="color" onchange="document.getElementById('note').style.backgroundColor=this.value" />
+      </div>
+      <div id="note" contenteditable="true"></div>
+    </div>
+  </div>
+
+  <script>
+    let notesData = {};
+    let currentSection = 'Section 1';
+    let currentPage = 'Page 1';
+
+    function downloadText() {
+      const text = document.getElementById('note').innerText;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${currentPage}.txt`;
+      a.click();
+    }
+
+    function downloadPDF() {
+      const text = document.getElementById('note').innerText;
+      const win = window.open('', '', 'width=800,height=600');
+      win.document.write(`<pre>${text}</pre>`);
+      win.document.close();
+      win.print();
+    }
+
+    function saveNoteText() {
+      if (!notesData[currentSection]) notesData[currentSection] = {};
+      notesData[currentSection][currentPage] = document.getElementById('note').innerHTML;
+      localStorage.setItem('novaNoteData', JSON.stringify(notesData));
+    }
+
+    function loadNoteText(section, page) {
+      const note = document.getElementById('note');
+      if (notesData[section] && notesData[section][page]) {
+        note.innerHTML = notesData[section][page];
+      } else {
+        note.innerHTML = '';
+      }
+    }
+
+    function switchPage(elem, pageName) {
+      saveNoteText();
+      currentPage = pageName;
+      loadNoteText(currentSection, currentPage);
+    }
+
+    function addPage() {
+      const pageName = prompt('Enter new page name:');
+      if (!pageName) return;
+      const pagesDiv = document.querySelector('#section1 .pages');
+      const newPage = document.createElement('div');
+      newPage.className = 'page-title';
+      newPage.innerHTML = `${pageName} <button class="delete-btn" onclick="this.parentElement.remove()">x</button>`;
+      newPage.onclick = () => switchPage(newPage, pageName);
+      pagesDiv.appendChild(newPage);
+      currentPage = pageName;
+      if (!notesData[currentSection]) notesData[currentSection] = {};
+      notesData[currentSection][currentPage] = '';
+      document.getElementById('note').innerHTML = '';
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('novaNoteData');
+      if (saved) notesData = JSON.parse(saved);
+      const pagesDiv = document.querySelector('#section1 .pages');
+      if (notesData[currentSection]) {
+        Object.keys(notesData[currentSection]).forEach(page => {
+          const newPage = document.createElement('div');
+          newPage.className = 'page-title';
+          newPage.innerHTML = `${page} <button class="delete-btn" onclick="this.parentElement.remove()">x</button>`;
+          newPage.onclick = () => switchPage(newPage, page);
+          pagesDiv.appendChild(newPage);
+        });
+      } else {
+        notesData[currentSection] = { 'Page 1': '' };
+        const defaultPage = document.createElement('div');
+        defaultPage.className = 'page-title';
+        defaultPage.innerHTML = `Page 1 <button class="delete-btn" onclick="this.parentElement.remove()">x</button>`;
+        defaultPage.onclick = () => switchPage(defaultPage, 'Page 1');
+        pagesDiv.appendChild(defaultPage);
+      }
+      currentPage = Object.keys(notesData[currentSection])[0];
+      loadNoteText(currentSection, currentPage);
+    });
+
+    window.addEventListener('beforeunload', saveNoteText);
+  </script>
+</body>
+</html>
